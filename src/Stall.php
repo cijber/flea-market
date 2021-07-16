@@ -13,7 +13,6 @@ use Cijber\FleaMarket\KeyValueStorage\RawHashMap;
 use Cijber\FleaMarket\Op\QueryEq;
 use Cijber\FleaMarket\Op\QueryHas;
 use Cijber\FleaMarket\Op\QueryRange;
-use Generator;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use RuntimeException;
@@ -21,6 +20,7 @@ use RuntimeException;
 use function iter\chain;
 use function iter\filter;
 use function iter\flatMap;
+use function iter\toIter;
 
 
 class Stall implements StallInterface {
@@ -81,21 +81,21 @@ class Stall implements StallInterface {
     }
 
     public function rangeIndex(string $name, $key = IntKey::class, bool $new = false): Index {
-        if (!isset($this->indexes[$name]) || $new) {
+        $index = $this->indexStore->index($name);
+        if ($index === null || $new) {
             return $this->indexStore->add($name, new Index(true, $key));
         }
 
-
-        return $this->indexStore->index($name);
+        return $index;
     }
 
     public function index(string $name, bool $new = false): Index {
-        if (!isset($this->indexes[$name]) || $new) {
+        $index = $this->indexStore->index($name);
+        if ($index === null || $new) {
             return $this->indexStore->add($name, new Index());
         }
 
-
-        return $this->indexStore->index($name);
+        return $index;
     }
 
     private function getMap(string $index_name): Map {
@@ -121,7 +121,7 @@ class Stall implements StallInterface {
         return new Query($this);
     }
 
-    public function runQuery(Query $query): Generator {
+    public function runQuery(Query $query): iterable {
         $operations = $query->getOperations();
 
         $offsets = null;
@@ -165,7 +165,7 @@ class Stall implements StallInterface {
                     $new_offsets = array_map(fn($x) => Utils::read40BitNumber($x), str_split($items, 5));
 
                     if ($offsets === null) {
-                        $offsets = chain($new_offsets);
+                        $offsets = toIter($new_offsets);
                     } else {
                         $offsets = intersect($new_offsets, $offsets);
                     }

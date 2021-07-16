@@ -7,6 +7,7 @@ namespace Cijber\FleaMarket;
 use Cijber\FleaMarket\KeyValueStorage\Key\IntKey;
 use Cijber\FleaMarket\Op\QueryEq;
 use Cijber\FleaMarket\Op\QueryHas;
+use Generator;
 use RuntimeException;
 
 
@@ -88,7 +89,9 @@ class SplitStall implements StallInterface {
         return new Query($this);
     }
 
-    public function runQuery(Query $query) {
+    public function runQuery(Query $query): iterable {
+        throw new \RuntimeException("Not implemented");
+
         foreach ($query->getOperations() as $op) {
             if ($op->isOnIndex() && $op->field === '_split') {
                 if ($op instanceof QueryHas) {

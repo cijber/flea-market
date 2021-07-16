@@ -39,7 +39,7 @@ class IntKey extends Key {
 
 
     public static function identity(): static {
-        return new static();
+        return new self();
     }
 
     public function unserialize($data) {

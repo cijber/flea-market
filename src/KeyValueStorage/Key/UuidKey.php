@@ -45,7 +45,7 @@ class UuidKey extends Key {
     }
 
     public static function identity(): static {
-        return new static(Uuid::uuid4());
+        return new self(Uuid::uuid4());
     }
 
     public function __clone() {

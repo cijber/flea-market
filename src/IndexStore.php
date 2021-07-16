@@ -31,4 +31,8 @@ class IndexStore {
     function get(): array {
         return $this->indexes;
     }
+
+    public function has(string $name) {
+        return isset($this->indexes[$name]);
+    }
 }

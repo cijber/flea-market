@@ -7,18 +7,6 @@ use Generator;
 use function iter\toIter;
 
 
-function cmp(Comparable $a, $op, Comparable $b): bool {
-    $cmp = $a->compareTo($b);
-
-    return match ($op) {
-        '>' => $cmp === 1,
-        '>=' => $cmp >= 0,
-        '==', '===' => $cmp === 0,
-        '<=' => $cmp <= 0,
-        '<' => $cmp === -1,
-    };
-}
-
 function intersect(iterable $iterable, iterable $input): Generator {
     $items = [];
 

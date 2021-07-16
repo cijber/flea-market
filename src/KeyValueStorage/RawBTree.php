@@ -133,7 +133,7 @@ class RawBTree implements Map {
         return $this->valueCache[$offset] = $data;
     }
 
-    private function insertInto(?BTreeNode $node, Key $key, string $value): ?int {
+    private function insertInto(?BTreeNode $node, Key $key, string $value): int {
         $i = count($node->keys) - 1;
         while ($i >= 0 && $key->compareTo($node->keys[$i]) === -1) {
             $i--;
@@ -172,7 +172,7 @@ class RawBTree implements Map {
         return $this->writeNode($node);
     }
 
-    /** @return array{bool, ?Node, ?int} */
+    /** @return array{bool, ?BTreeNode, ?int} */
     private function find(?BTreeNode $node, Key $key): array {
         while (true) {
             $i = 0;
@@ -185,10 +185,13 @@ class RawBTree implements Map {
             }
 
             if ($node->leaf) {
-                return [false, null, null];
+                break;
             }
+
             $node = $this->readNode($node->children[$i]);
         }
+
+        return [false, null, null];
     }
 
     public function dot(): string {
@@ -219,11 +222,11 @@ class RawBTree implements Map {
         return $x;
     }
 
-    public function range($from = null, $to = null, bool $inclusiveFrom = true, bool $inclusiveTo = true): Generator {
+    public function range($from = null, $to = null, bool $fromInclusive = true, bool $toInclusive = true): Generator {
         $from = $from !== null ? $this->getKey($from) : null;
         $to   = $to !== null ? $this->getKey($to) : null;
 
-        $gen = $this->rangeOn($this->root, $from, $to, $inclusiveFrom, $inclusiveTo);
+        $gen = $this->rangeOn($this->root, $from, $to, $fromInclusive, $toInclusive);
         foreach ($gen as [$node, $index]) {
             yield new MapEntryWithOffsetValue($this, $node->keys[$index]->save(), $node->values[$index]);
         }

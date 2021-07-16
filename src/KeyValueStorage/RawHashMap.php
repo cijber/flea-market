@@ -45,7 +45,7 @@ class RawHashMap implements Map {
             $size             = ord($this->storage->read(1));
         }
 
-        $this->actualSize = 2 ** (int)$size;
+        $this->actualSize = (int)(2 ** $size);
 
         if ($fill) {
             $this->storage->seek(0, SEEK_END);

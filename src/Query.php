@@ -37,7 +37,7 @@ class Query {
         return $this->operations;
     }
 
-    public function execute(): Generator {
+    public function execute(): iterable {
         return $this->stall->runQuery($this);
     }
 

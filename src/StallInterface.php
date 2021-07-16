@@ -17,5 +17,5 @@ interface StallInterface {
 
     public function find(): Query;
 
-    public function runQuery(Query $query): Generator;
+    public function runQuery(Query $query): iterable;
 }

@@ -1,17 +1,9 @@
-# Flea Market
+<?php
 
-A discount database
+include __DIR__ . "/../vendor/autoload.php";
 
-[![PHPUnit](https://github.com/cijber/flea-market/actions/workflows/phpunit.yml/badge.svg)](https://github.com/cijber/flea-market/actions/workflows/phpunit.yml)
-
----
-
-Still loads to do, like e.g. documenting.
-
-but a simple example of how it works:
-
-```php
 use Cijber\FleaMarket\Stall;
+
 
 $s = new Stall();
 
@@ -27,4 +19,3 @@ $items = $s->find()->eq('year', 2007, true)->execute();
 foreach ($items as $doc) {
     echo "{$doc[':id']} => {$doc['event']}\n"; // fe68ea18-b2ae-4c35-b7ec-9b4aa8d021be => php was born
 }
-```

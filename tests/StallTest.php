@@ -5,9 +5,11 @@ namespace Cijber\Tests\FleaMarket;
 
 
 use Cijber\FleaMarket\DirectoryStoragePool;
+use Cijber\FleaMarket\KeyValueStorage\Key\StringKey;
 use Cijber\FleaMarket\Op\Range;
 use Cijber\FleaMarket\Query;
 use Cijber\FleaMarket\Stall;
+use DateTime;
 use PHPUnit\Framework\TestCase;
 
 use function iter\toArray;
@@ -114,6 +116,51 @@ class StallTest extends TestCase {
         $this->assertCount(1, $items);
 
         $items = $s->find()->eq('gender', 6, true)->execute();
+        $items = toArray($items);
+        $this->assertCount(1, $items);
+    }
+
+    public function testMutationIndex() {
+        function getYear(DateTime|string $date_time) {
+            if ($date_time instanceof DateTime) {
+                return intval($date_time->format('Y'));
+            }
+
+            return date_parse($date_time)['year'];
+        }
+
+        $s = new Stall();
+        $s->rangeIndex('year')
+          ->path('date')
+          ->mutate(fn($d) => getYear($d));
+
+        $s->insert(['date' => new DateTime()]);
+        $s->insert(['date' => '2007-04-05T14:30:00Z']);
+
+        $items = $s->find()->eq('year', 2007, true)->execute();
+        $items = toArray($items);
+        $this->assertCount(1, $items);
+
+        $items = $s->find()
+                   ->range('year', Range::inclusive(2021, null), true)
+                   ->execute();
+        $items = toArray($items);
+        $this->assertCount(1, $items);
+    }
+
+    public function testStringRangeIndex() {
+        $s = new Stall();
+        $s->rangeIndex('name', StringKey::class)->path('name');
+
+        $s->insert(['name' => "Henk"]);
+        $s->insert(['name' => "Henk2"]);
+        $s->insert(['name' => "Henm"]);
+
+        $items = $s->find()->range('name', Range::exclusive('Henj', 'Henl'), true)->execute();
+        $items = toArray($items);
+        $this->assertCount(2, $items);
+
+        $items = $s->find()->eq('name', 'Henm', true)->execute();
         $items = toArray($items);
         $this->assertCount(1, $items);
     }

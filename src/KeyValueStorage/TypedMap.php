@@ -46,8 +46,8 @@ abstract class TypedMap implements Map {
         return $this->parent->has($key);
     }
 
-    public function range($from, $to, $fromInclusive = true, $toInclusive = true): Generator {
-        foreach ($this->parent->range($from, $to, $fromInclusive, $toInclusive) as $entry) {
+    public function range($from, $to, $fromInclusive = true, $toInclusive = true, bool $reverse = false): Generator {
+        foreach ($this->parent->range($from, $to, $fromInclusive, $toInclusive, $reverse) as $entry) {
             yield new TypedMapEntry($this, $entry);
         }
     }

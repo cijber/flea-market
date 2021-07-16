@@ -222,17 +222,17 @@ class RawBTree implements Map {
         return $x;
     }
 
-    public function range($from = null, $to = null, bool $fromInclusive = true, bool $toInclusive = true): Generator {
+    public function range($from = null, $to = null, bool $fromInclusive = true, bool $toInclusive = true, bool $reverse = false): Generator {
         $from = $from !== null ? $this->getKey($from) : null;
         $to   = $to !== null ? $this->getKey($to) : null;
 
-        $gen = $this->rangeOn($this->root, $from, $to, $fromInclusive, $toInclusive);
+        $gen = $this->rangeOn($this->root, $from, $to, $fromInclusive, $toInclusive, $reverse);
         foreach ($gen as [$node, $index]) {
             yield new MapEntryWithOffsetValue($this, $node->keys[$index]->save(), $node->values[$index]);
         }
     }
 
-    private function rangeOn(?BTreeNode $node, ?Key $from, ?Key $to, $inclusiveFrom = false, $inclusiveTo = false) {
+    private function rangeOn(?BTreeNode $node, ?Key $from, ?Key $to, $inclusiveFrom = false, $inclusiveTo = false, $reverse = false) {
         if ($node === null) {
             return;
         }
@@ -266,11 +266,25 @@ class RawBTree implements Map {
             return;
         }
 
+        if ($reverse) {
+            while ($i <= --$z) {
+                if (!$node->leaf) {
+                    yield from $this->rangeOn($this->readNode($node->children[$z]), $from, $to, $inclusiveFrom, $inclusiveTo);
+                }
+
+                yield [$node, $z];
+            }
+
+            if (!$node->leaf) {
+                yield from $this->rangeOn($this->readNode($node->children[$i]), $from, $to, $inclusiveFrom, $inclusiveTo);
+            }
+
+            return;
+        }
 
         if (!$node->leaf) {
             yield from $this->rangeOn($this->readNode($node->children[$i]), $from, $to, $inclusiveFrom, $inclusiveTo);
         }
-
 
         while ($i < $z) {
             yield [$node, $i];

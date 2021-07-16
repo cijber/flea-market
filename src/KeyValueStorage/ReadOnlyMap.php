@@ -21,5 +21,5 @@ interface ReadOnlyMap {
 
     public function values(): Generator;
 
-    public function range($from, $to, bool $fromInclusive = true, bool $toInclusive = true): Generator;
+    public function range($from, $to, bool $fromInclusive = true, bool $toInclusive = true, bool $reverse = false): Generator;
 }

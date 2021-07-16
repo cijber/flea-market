@@ -32,7 +32,7 @@ trait MapDefaults {
         }
     }
 
-    public function range($from, $to, $fromInclusive = true, $toInclusive = true): Generator {
+    public function range($from, $to, bool $fromInclusive = true, bool $toInclusive = true, bool $reverse = false): Generator {
         if ($from === null && $to === null)
             return $this->entries();
 

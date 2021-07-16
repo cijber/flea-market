@@ -102,12 +102,17 @@ class BTreeTest extends TestCase {
     }
 
     public function testReverseRange() {
-        $t = new RawBTree();
+        $t = new RawBTree(maxKeys: 5);
         $t->insert("1", "1");
         $t->insert("2", "2");
         $t->insert("3", "3");
         $t->insert("4", "4");
         $t->insert("5", "5");
+        $t->insert("6", "1");
+        $t->insert("7", "2");
+        $t->insert("8", "3");
+        $t->insert("9", "4");
+        $t->insert("10", "5");
 
         $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 4, reverse: true));
         $items = toArray($items);
@@ -120,6 +125,10 @@ class BTreeTest extends TestCase {
         $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 5, reverse: true));
         $items = toArray($items);
         $this->assertEquals(["5", "4", "3", "2", "1"], $items);
+
+        $items = map(fn(MapEntry $item) => $item->key(), $t->range(4, 8, reverse: true));
+        $items = toArray($items);
+        $this->assertEquals(["8", "7", "6", "5", "4"], $items);
     }
 
     /**

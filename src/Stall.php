@@ -6,6 +6,7 @@ namespace Cijber\FleaMarket;
 
 use Cijber\FleaMarket\DocumentStorage\DocumentStore;
 use Cijber\FleaMarket\DocumentStorage\JsonDocumentStore;
+use Cijber\FleaMarket\Filter\UniqueFilter;
 use Cijber\FleaMarket\KeyValueStorage\Key\IntKey;
 use Cijber\FleaMarket\KeyValueStorage\Map;
 use Cijber\FleaMarket\KeyValueStorage\RawBTree;
@@ -197,7 +198,8 @@ class Stall implements StallInterface {
         if ($offsets === null) {
             $entries = $this->documentStore->all();
         } else {
-            $entries = \iter\map(fn($offset) => $this->documentStore->hasAndGetByHandleOffset($offset), $offsets);
+            $entries = filter(new UniqueFilter(), $offsets);
+            $entries = \iter\map(fn($offset) => $this->documentStore->hasAndGetByHandleOffset($offset), $entries);
             $entries = flatMap(fn($found_and_item) => $found_and_item[0] ? [$found_and_item[1]] : [], $entries);
         }
 

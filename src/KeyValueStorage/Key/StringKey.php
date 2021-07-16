@@ -15,7 +15,7 @@ class StringKey extends Key {
     }
 
     public function compareTo($b): int {
-        return strcmp($this->value, $b->value);
+        return $this->value <=> $b->value;
     }
 
     public function serialize() {

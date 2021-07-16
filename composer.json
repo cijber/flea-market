@@ -1,0 +1,34 @@
+{
+  "name": "cijber/flea-market",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Cijber\\FleaMarket\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Cijber\\Tests\\FleaMarket\\": "tests/"
+    },
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "authors": [
+    {
+      "name": "eater",
+      "email": "=@eater.me"
+    }
+  ],
+  "require": {
+    "ramsey/uuid": "4.1.1",
+    "ext-sodium": "*",
+    "mtdowling/jmespath.php": "2.6.1",
+    "nikic/iter": "^2.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9",
+    "perftools/php-profiler": "0.18.0",
+    "vimeo/psalm": "^4.8"
+  }
+}

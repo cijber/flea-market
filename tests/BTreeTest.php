@@ -107,14 +107,19 @@ class BTreeTest extends TestCase {
         $t->insert("2", "2");
         $t->insert("3", "3");
         $t->insert("4", "4");
+        $t->insert("5", "5");
 
         $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 4, reverse: true));
         $items = toArray($items);
         $this->assertEquals(["4", "3", "2", "1"], $items);
 
-        $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 4, reverse: false));
+        $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 4, reverse: true));
         $items = toArray($items);
-        $this->assertEquals(["1", "2", "3", "4"], $items);
+        $this->assertEquals(["4", "3", "2", "1"], $items);
+
+        $items = map(fn(MapEntry $item) => $item->key(), $t->range(1, 5, reverse: true));
+        $items = toArray($items);
+        $this->assertEquals(["5", "4", "3", "2", "1"], $items);
     }
 
     /**

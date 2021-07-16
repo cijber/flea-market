@@ -267,10 +267,12 @@ class RawBTree implements Map {
         }
 
         if ($reverse) {
-            while ($i <= --$z) {
+            while ($i < $z) {
                 if (!$node->leaf) {
                     yield from $this->rangeOn($this->readNode($node->children[$z]), $from, $to, $inclusiveFrom, $inclusiveTo);
                 }
+
+                $z--;
 
                 yield [$node, $z];
             }

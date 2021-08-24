@@ -4,6 +4,9 @@
 namespace Cijber\FleaMarket;
 
 
+use Cijber\FleaMarket\KeyValueStorage\Key;
+
+
 class Index {
 
     private $mutators = [];
@@ -12,8 +15,17 @@ class Index {
 
     public function __construct(
       private bool $rangeIndex = false,
-      private $key = null,
+      private Key|string|null $key = null,
+      private ?string $name = null,
     ) {
+    }
+
+    public function getName(): ?string {
+        return $this->name;
+    }
+
+    public function setName(?string $name): void {
+        $this->name = $name;
     }
 
     public function setJmesRuntime(callable $jmesRuntime): void {
@@ -56,7 +68,7 @@ class Index {
         return $this->rangeIndex;
     }
 
-    public function getKey() {
+    public function getKey(): Key|string|null {
         return $this->key;
     }
 }

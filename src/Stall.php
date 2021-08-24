@@ -7,21 +7,18 @@ namespace Cijber\FleaMarket;
 use Cijber\FleaMarket\DocumentStorage\DocumentStore;
 use Cijber\FleaMarket\DocumentStorage\JsonDocumentStore;
 use Cijber\FleaMarket\Filter\UniqueFilter;
+use Cijber\FleaMarket\KeyValueStorage\Key;
 use Cijber\FleaMarket\KeyValueStorage\Key\IntKey;
 use Cijber\FleaMarket\KeyValueStorage\Map;
 use Cijber\FleaMarket\KeyValueStorage\RawBTree;
 use Cijber\FleaMarket\KeyValueStorage\RawHashMap;
-use Cijber\FleaMarket\Op\QueryEq;
-use Cijber\FleaMarket\Op\QueryHas;
-use Cijber\FleaMarket\Op\QueryRange;
+use JetBrains\PhpStorm\Pure;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use RuntimeException;
 
-use function iter\chain;
 use function iter\filter;
 use function iter\flatMap;
-use function iter\toIter;
 
 
 class Stall implements StallInterface {
@@ -32,6 +29,12 @@ class Stall implements StallInterface {
     /** @var Map[] */
     private array $indexMaps = [];
 
+    /**
+     * Stall constructor.
+     *
+     * @param  StoragePool|null  $pool  The storage pool to store all relevant key value and document stores
+     * @param  IndexStore|null  $index_store  The index store which stores the defined indexes. - this does not mean it shares the index storage, only the definition of
+     */
     public function __construct(?StoragePool $pool = null, ?IndexStore $index_store = null) {
         if ($pool === null) {
             $this->pool = new MemoryStoragePool();
@@ -48,14 +51,26 @@ class Stall implements StallInterface {
         $this->documentStore = new JsonDocumentStore($this->pool);
     }
 
+    /**
+     * Inserts and indexes a document into the stall
+     *
+     * @param  array  $document
+     *
+     * @return array The inserted document including the id on `:id`
+     */
     public function insert(array $document): array {
-        $id              = Uuid::uuid4();
+        if (isset($document[':id']) && Uuid::isValid($document[':id'])) {
+            $id = Uuid::fromString($document[':id']);
+        } else {
+            $id = Uuid::uuid4();
+        }
+
         $document[':id'] = $id->toString();
         $this->documentStore->upsert($id, $document, $handle_offset);
 
         foreach ($this->indexStore->get() as $index_name => $index) {
             $data = $index->process($document);
-            if (!is_array($data)) {
+            if ( ! is_array($data)) {
                 $data = [$data];
             }
 
@@ -81,7 +96,11 @@ class Stall implements StallInterface {
         return $document;
     }
 
-    public function rangeIndex(string $name, $key = IntKey::class, bool $new = false): Index {
+
+    /**
+     * @inheritdoc
+     */
+    public function rangeIndex(string $name, string|Key $key = IntKey::class, bool $new = false): Index {
         $index = $this->indexStore->index($name);
         if ($index === null || $new) {
             return $this->indexStore->add($name, new Index(true, $key));
@@ -90,6 +109,14 @@ class Stall implements StallInterface {
         return $index;
     }
 
+    /**
+     * Create a new index (hashmap based) for this database
+     *
+     * @param  string  $name  The name of the index, will also be used for querying
+     * @param  bool  $new  If a new index should be created, if none exists it will automatically create one
+     *
+     * @return Index
+     */
     public function index(string $name, bool $new = false): Index {
         $index = $this->indexStore->index($name);
         if ($index === null || $new) {
@@ -118,97 +145,78 @@ class Stall implements StallInterface {
         return $this->indexMaps[$index_name];
     }
 
+    /**
+     * Create a new query for this database
+     *
+     * @return Query
+     */
+    #[Pure]
     public function find(): Query {
         return new Query($this);
     }
 
-    public function runQuery(Query $query): iterable {
-        $operations = $query->getOperations();
+    /**
+     * Run a query on this database
+     *
+     * @param  Query  $query
+     *
+     * @return iterable
+     */
+    public function getOffsetCarriersForQuery(Query $query): ?iterable {
+        $operations = $query->getIndexOperations();
 
         $offsets = null;
         foreach ($operations as $operation) {
-            if ($operation->isOnIndex()) {
-                if ($operation instanceof QueryHas) {
-                    $index = $this->indexStore->index($operation->field);
-
-                    if ($index === null) {
-                        throw new RuntimeException("No index with the name {$operation->field}");
-                    }
-
-                    $map = $this->getMap($operation->field);
-
-                    $new_offsets = flatMap(fn($item) => str_split($item, 5), $map->values());
-                    $new_offsets = filter(fn($item) => strlen($item) === 5, $new_offsets);
-                    $new_offsets = \iter\map(fn($item) => Utils::read40BitNumber($item), $new_offsets);
-
-                    if ($offsets === null) {
-                        $offsets = $new_offsets;
-                    } else {
-                        $offsets = intersect($new_offsets, $offsets);
-                    }
-                } elseif ($operation instanceof QueryEq) {
-                    $index = $this->indexStore->index($operation->field);
-
-                    if ($index === null) {
-                        throw new RuntimeException("No index with the name {$operation->field}");
-                    }
-
-                    $input_value = $index->processInput($operation->value);
-
-                    $map = $this->getMap($operation->field);
-
-                    [$found, $items] = $map->hasAndGet($input_value);
-
-                    if (!$found || strlen($items) === 0) {
-                        return chain();
-                    }
-
-                    $new_offsets = array_map(fn($x) => Utils::read40BitNumber($x), str_split($items, 5));
-
-                    if ($offsets === null) {
-                        $offsets = toIter($new_offsets);
-                    } else {
-                        $offsets = intersect($new_offsets, $offsets);
-                    }
-                } elseif ($operation instanceof QueryRange) {
-                    $index = $this->indexStore->index($operation->field);
-
-                    if ($index === null) {
-                        throw new RuntimeException("No index with the name \"{$operation->field}\"");
-                    }
-
-                    $from = $operation->range->from !== null ? $index->processInput($operation->range->from) : null;
-                    $to   = $operation->range->to !== null ? $index->processInput($operation->range->to) : null;
+            $index = $this->indexStore->index($operation->getIndex());
 
 
-                    $map = $this->getMap($operation->field);
+            if ($index === null) {
+                throw new RuntimeException("No index with the name {$operation->field}");
+            }
 
-                    $new_offsets = flatMap(fn($item) => str_split($item->value(), 5), $map->range($from, $to, $operation->range->fromInclusive, $operation->range->toInclusive));
-                    $new_offsets = filter(fn($item) => strlen($item) === 5, $new_offsets);
-                    $new_offsets = \iter\map(fn($item) => Utils::read40BitNumber($item), $new_offsets);
-                    if ($offsets === null) {
-                        $offsets = $new_offsets;
-                    } else {
-                        $offsets = intersect($new_offsets, $offsets);
-                    }
-                }
+            $map = $this->getMap($operation->getIndex());
+
+            $new_offsets = $operation->getOffsets($index, $map);
+
+            if ($offsets === null) {
+                $offsets = $new_offsets;
+            } else {
+                $offsets = intersectOffsetCarriers($offsets, $new_offsets);
             }
         }
+
+        return $offsets;
+    }
+
+    /**
+     * Run a query on this database
+     *
+     * @param  Query  $query
+     *
+     * @return iterable
+     */
+    public function runQuery(Query $query): iterable {
+        $offsets = $this->getOffsetCarriersForQuery($query);
 
         if ($offsets === null) {
             $entries = $this->documentStore->all();
         } else {
             $entries = filter(new UniqueFilter(), $offsets);
-            $entries = \iter\map(fn($offset) => $this->documentStore->hasAndGetByHandleOffset($offset), $entries);
+            $entries = \iter\map(fn($offset) => $this->documentStore->hasAndGetByHandleOffset($offset->getOffset()), $entries);
             $entries = flatMap(fn($found_and_item) => $found_and_item[0] ? [$found_and_item[1]] : [], $entries);
         }
 
         return filter(fn($item) => $query->matches($item), $entries);
     }
 
-    public function delete(UuidInterface|array|string $docOrId) {
+    /**
+     * Delete a document from the database
+     *
+     * @param  UuidInterface|array|string  $docOrId  Either a document with `:id` set or the id of the document
+     */
+    public function delete(UuidInterface|array|string $docOrId): array {
         if (is_array($docOrId)) {
-            if (!isset($docOrId[':id'])) {
+            if ( ! isset($docOrId[':id'])) {
                 throw new RuntimeException("Called update without id, either the :id field should be in the document or the id should be given as string");
             }
 
@@ -217,12 +225,12 @@ class Stall implements StallInterface {
             $id = $docOrId;
         }
 
-        if (!$id instanceof UuidInterface) {
+        if ( ! $id instanceof UuidInterface) {
             $id = Uuid::fromString($id);
         }
 
         [$found, $object, $old_handle_offset] = $this->documentStore->hasAndDelete($id);
-        if (!$found) {
+        if ( ! $found) {
             throw new RuntimeException("Document with id $id doesn't exist");
         }
 
@@ -232,13 +240,13 @@ class Stall implements StallInterface {
             $old_output = $index->process($object);
             $map        = $this->getMap($index_name);
 
-            if (!is_array($old_output)) {
+            if ( ! is_array($old_output)) {
                 $old_output = [$old_output];
             }
 
             foreach ($old_output as $index_key) {
                 [$found, $value] = $map->hasAndGet($index_key);
-                if (!$found) {
+                if ( ! $found) {
                     continue;
                 }
 
@@ -256,26 +264,29 @@ class Stall implements StallInterface {
                 }
             }
         }
+
+        return $object;
     }
 
-    public function update(array $doc, ?string $id = null) {
+    public function update(array $doc, null|string|UuidInterface $id = null): array {
         if ($id === null) {
-            if (!isset($doc[':id'])) {
+            if ( ! isset($doc[':id'])) {
                 throw new RuntimeException("Called update without id, either the :id field should be in the document or \$id should be given");
             }
 
             $id = $doc[':id'];
         }
 
-        if (!$id instanceof UuidInterface) {
+        if ( ! $id instanceof UuidInterface) {
             $id = Uuid::fromString($id);
         }
 
         [$found, $object, $old_handle_offset] = $this->documentStore->hasAndGet($id);
-        if (!$found) {
+        if ( ! $found) {
             throw new RuntimeException("Document with id $id doesn't exist");
         }
 
+        $doc[':id'] = $id->toString();
         $this->documentStore->update($id, $doc, $handle_offset);
 
         $handle_offset_b     = Utils::write40BitNumber($handle_offset);
@@ -290,7 +301,7 @@ class Stall implements StallInterface {
 
             if ($old_output === null) {
                 $old_output = [];
-            } elseif (!is_array($old_output)) {
+            } elseif ( ! is_array($old_output)) {
                 $old_output = [$old_output];
             }
 
@@ -305,7 +316,7 @@ class Stall implements StallInterface {
 
             if ($new_output === null) {
                 $new_output = [];
-            } elseif (!is_array($new_output)) {
+            } elseif ( ! is_array($new_output)) {
                 $new_output = [$new_output];
             }
 
@@ -319,9 +330,9 @@ class Stall implements StallInterface {
 
             foreach ($combo as $key => $_) {
                 // Exists in old, but not in new, remove our entry from the index
-                if (isset($old_output[$key]) && !isset($new_output[$key])) {
+                if (isset($old_output[$key]) && ! isset($new_output[$key])) {
                     [$found, $offsets] = $map->hasAndGet($key);
-                    if (!$found) {
+                    if ( ! $found) {
                         continue;
                     }
 
@@ -343,7 +354,7 @@ class Stall implements StallInterface {
 
                 // These either need to be replaced or inserted
                 [$found, $offsets] = $map->hasAndGet($key);
-                if (!$found) {
+                if ( ! $found) {
                     $map->insert($key, $handle_offset_b);
                     continue;
                 }
@@ -366,12 +377,29 @@ class Stall implements StallInterface {
                     }
                 }
 
-                if (!$replaced) {
+                if ( ! $replaced) {
                     $offsets .= $handle_offset_b;
                 }
 
                 $map->insert($key, $offsets);
             }
         }
+
+        return $doc;
+    }
+
+    public function all(): iterable {
+        return $this->documentStore->all();
+    }
+
+    public function close(): void {
+        $this->documentStore->close();
+        foreach ($this->indexMaps as $map) {
+            $map->close();
+        }
+    }
+
+    public function hasAndGetByHandleOffset(int $offset): array {
+        return $this->documentStore->hasAndGetByHandleOffset($offset);
     }
 }

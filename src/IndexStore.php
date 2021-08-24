@@ -17,8 +17,13 @@ class IndexStore {
         $this->jmesRuntime = new CompilerRuntime($this->pool instanceof DirectoryStoragePool ? $this->pool->getPath() . '/.jmes' : null);
     }
 
-    function add(string $name, Index $index): Index {
+    function init(string $name, Index $index) {
         $index->setJmesRuntime($this->jmesRuntime);
+        $index->setName($name);
+    }
+
+    function add(string $name, Index $index): Index {
+        $this->init($name, $index);
 
         return $this->indexes[$name] = $index;
     }

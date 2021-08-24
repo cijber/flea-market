@@ -39,7 +39,7 @@ class HashMapTest extends TestCase {
 
         $data = array_map(fn($x) => "$x", json_decode(file_get_contents(__DIR__ . '/keys.json')));
 
-        $t = new RawHashMap(new BufferedStorage(new FileStorage("/tmp/delete-me")));
+        $t = new RawHashMap(new FileStorage("/tmp/delete-me"));
 
         foreach ($data as $i => $key) {
             $t->insert($key, $key);

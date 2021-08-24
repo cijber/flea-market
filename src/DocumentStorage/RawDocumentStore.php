@@ -232,4 +232,10 @@ class RawDocumentStore implements DocumentStore {
             }
         }
     }
+
+    public function close(): void {
+        $this->internalIdStore->close();
+        $this->documentStorage->close();
+        $this->handleStorage->close();
+    }
 }

@@ -5,9 +5,12 @@ namespace Cijber\Tests\FleaMarket;
 
 
 use Cijber\FleaMarket\DirectoryStoragePool;
+use Cijber\FleaMarket\Index;
 use Cijber\FleaMarket\KeyValueStorage\Key\StringKey;
+use Cijber\FleaMarket\MemoryStoragePool;
 use Cijber\FleaMarket\Op\Range;
 use Cijber\FleaMarket\Query;
+use Cijber\FleaMarket\SplitStall;
 use Cijber\FleaMarket\Stall;
 use DateTime;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +38,14 @@ class StallTest extends TestCase {
 
         $doc['age'] = 10;
         $s->update($doc);
+
+        $items = $s->find()->eq("age", 4, true)->execute();
+        $items = toArray($items);
+        $this->assertCount(0, $items);
+
+        $items = $s->find()->eq("age", 10, true)->execute();
+        $items = toArray($items);
+        $this->assertCount(1, $items);
     }
 
     public function testCrudOnDisk() {
@@ -163,6 +174,18 @@ class StallTest extends TestCase {
         $items = $s->find()->eq('name', 'Henm', true)->execute();
         $items = toArray($items);
         $this->assertCount(1, $items);
+    }
+
+    public function testSplitStall() {
+        $pool = new MemoryStoragePool();
+        $s    = SplitStall::create(fn(Index $i) => $i->path('gender'), $pool, 'gender');
+        $s->insert(['gender' => 4, 'id' => 1]);
+        $s->insert(['gender' => 5, 'id' => 2]);
+
+        $doc = $s->find()->eq('gender', 4, true)->first();
+        $this->assertNotNull($doc);
+        $this->assertEquals(1, $doc['id']);
+        $this->assertTrue($pool->hasDirectory($s->createStallId(4)));
     }
 
     protected function tearDown(): void {

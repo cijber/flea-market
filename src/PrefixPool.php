@@ -15,4 +15,7 @@ class PrefixPool implements StoragePool {
     public function getStorage(string $name): BackingStorage {
         return $this->pool->getStorage($this->prefix . $name);
     }
+
+    public function close(): void {
+    }
 }

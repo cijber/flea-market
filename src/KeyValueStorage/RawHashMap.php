@@ -259,4 +259,8 @@ class RawHashMap implements Map {
             }
         }
     }
+
+    public function close(): void {
+        $this->storage->close();
+    }
 }

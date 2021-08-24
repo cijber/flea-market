@@ -673,4 +673,8 @@ class RawBTree implements Map {
     public function entries(): Generator {
         return $this->range();
     }
+
+    public function close(): void {
+        $this->storage->close();
+    }
 }

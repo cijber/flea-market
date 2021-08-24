@@ -78,4 +78,8 @@ class JsonDocumentStore implements DocumentStore {
 
         return [$found, $document, $handle_offset];
     }
+
+    public function close(): void {
+        $this->store->close();
+    }
 }

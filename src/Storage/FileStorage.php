@@ -11,6 +11,11 @@ class FileStorage implements BackingStorage {
     private $fd;
 
     public function __construct(private string $path) {
+        $dir = dirname($this->path);
+        if ( ! is_dir($dir)) {
+            mkdir($dir, recursive: true);
+        }
+
         $fd = fopen($path, 'c+');
         if ($fd === false) {
             throw new \RuntimeException(":(");
@@ -22,11 +27,15 @@ class FileStorage implements BackingStorage {
         return $this->path;
     }
 
+    public function setPath(string $path): void {
+        $this->path = $path;
+    }
+
     public function lock(bool $reader = true) {
         flock($this->fd, $reader ? LOCK_SH : LOCK_EX);
     }
 
-    public function unlock() {
+    public function unlock(): void {
         flock($this->fd, LOCK_UN);
     }
 
@@ -48,7 +57,20 @@ class FileStorage implements BackingStorage {
         return fread($this->fd, $size);
     }
 
-    public function flush() {
+    public function flush(): void {
         fflush($this->fd);
+    }
+
+    public function exchange(FileStorage $rhs) {
+        $our_fd     = $this->fd;
+        $our_path   = $this->path;
+        $this->fd   = $rhs->fd;
+        $this->path = $rhs->path;
+        $rhs->fd    = $our_fd;
+        $rhs->path  = $our_path;
+    }
+
+    public function close(): void {
+        fclose($this->fd);
     }
 }

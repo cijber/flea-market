@@ -7,7 +7,7 @@ namespace Cijber\FleaMarket;
 interface BackingStorage {
     public function lock(bool $reader = true);
 
-    public function unlock();
+    public function unlock(): void;
 
     public function seek(int $offset, int $which = SEEK_SET);
 
@@ -17,5 +17,7 @@ interface BackingStorage {
 
     public function read(int $size): string;
 
-    public function flush();
+    public function flush(): void;
+
+    public function close(): void;
 }

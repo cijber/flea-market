@@ -15,11 +15,11 @@ class MemoryStorage implements BackingStorage {
         // empty
     }
 
-    public function unlock() {
+    public function unlock(): void {
         // empty
     }
 
-    public function flush() {
+    public function flush(): void {
         // empty
     }
 
@@ -50,5 +50,9 @@ class MemoryStorage implements BackingStorage {
         $this->position += $size;
 
         return $data;
+    }
+
+    public function close(): void {
+        $this->data = "";
     }
 }

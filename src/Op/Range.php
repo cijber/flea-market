@@ -22,19 +22,23 @@ class Range {
         }
     }
 
+    #[Pure]
+    public static function all(): Range {
+        return self::inclusive();
+    }
 
     #[Pure]
     public static function exclusive(
-      $from,
-      $to
+      $from = null,
+      $to = null,
     ): Range {
         return new Range($from, $to, false, false);
     }
 
     #[Pure]
     public static function inclusive(
-      $from,
-      $to
+      $from = null,
+      $to = null,
     ): Range {
         return new Range($from, $to);
     }
@@ -62,7 +66,7 @@ class Range {
                 return false;
             }
 
-            if (!$this->toInclusive && $fromCmp === 0) {
+            if (!$this->toInclusive && $toCmp === 0) {
                 return false;
             }
         }

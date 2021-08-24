@@ -57,4 +57,8 @@ abstract class TypedMap implements Map {
             yield new TypedMapEntry($this, $entry);
         }
     }
+
+    public function close(): void {
+        $this->parent->close();
+    }
 }

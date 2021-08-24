@@ -147,26 +147,6 @@ class BTreeTest extends TestCase {
         }
     }
 
-    /**
-     * @group extended
-     */
-    public function testBigSetWithCaching() {
-        if (file_exists("/tmp/delete-me")) {
-            unlink("/tmp/delete-me");
-        }
-
-        $data = json_decode(file_get_contents(__DIR__ . '/keys.json'));
-        $t    = new RawBTree(new BufferedStorage(new FileStorage("/tmp/delete-me")));
-
-        foreach ($data as $i => $key) {
-            $t->insert($key, $key);
-
-            for ($j = 0; $j < $i; $j++) {
-                $this->assertEquals($data[$j], $t->get($data[$j]));
-            }
-        }
-    }
-
     public function testUuidKeys() {
         $uuids = <<<UUIDS
 83310e7a-332a-451e-b492-056351bca0fb

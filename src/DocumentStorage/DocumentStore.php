@@ -28,4 +28,6 @@ interface DocumentStore {
     public function has(UuidInterface $id): bool;
 
     public function all(): Generator;
+
+    public function close(): void;
 }
